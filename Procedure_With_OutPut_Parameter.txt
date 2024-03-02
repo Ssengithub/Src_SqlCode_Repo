@@ -1,0 +1,14 @@
+----Procedure With Output Parameter---
+Alter Procedure TEST (@DocKey Int,
+@Customer_Count Int Output)
+As
+Begin
+ Select DocEntry,DocNum,CardCode,CardName From OPOR
+  Where DocEntry = @DocKey
+  Select @Customer_Count = @@ROWCOUNT
+End
+
+---- Process to Execute -------
+DECLARE  @Count int
+  Exec TEST 5,@Customer_Count = @Count Output
+  Select @Count As 'Count'

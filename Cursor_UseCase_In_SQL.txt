@@ -1,0 +1,130 @@
+CREATE OR ALTER PROCEDURE SP_DailyTransactionCount(@FromDate DATE,@ToDate Date)
+AS
+BEGIN
+       DECLARE @COLUMN_NAMES NVARCHAR(Max)
+       DECLARE @COLUMN_NAMES2 NVARCHAR(Max)
+       DECLARE @SQL_STRING NVARCHAR(Max)
+       DECLARE @SQL_STRING2 NVARCHAR(Max)
+       
+       CREATE TABLE #TransSummary(TransType NVARCHAR(50),CreateDate DATE,UserSign INT,TransCount INT);
+       CREATE TABLE #TransTypes(TransType NVARCHAR(50),Description NVARCHAR(200));
+
+       --SELECT BINTOSTR(HEXTOBIN('0D0A')) INTO LINE_BREAK 
+	   --Set @LINE_BREAK = (Select CONVERT(varchar(Max),'0D0A',2))
+	   --Select Cast('0D0A'As varchar(Max)) Into LINE_BREAK
+       
+       INSERT INTO "#TransSummary"
+       SELECT V."TransType",V."CreateDate",V."UserSign",COUNT(DISTINCT "TransId") AS "TransCount" 
+       FROM (
+              SELECT "Object" AS "TransType","CreateDate","UserSign","DocEntry" AS "TransId" 
+              FROM "@FFS_MH_IMPORTLC"
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              UNION ALL
+              SELECT CAST("TransType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","TransId"
+              FROM OJDT
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              UNION ALL
+              SELECT CAST("TransType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","DocEntry" AS "TransId" 
+              FROM OILM           
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              UNION ALL
+              SELECT CAST("ObjType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","DocEntry" AS "TransId" 
+              FROM ORDR
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              UNION ALL
+              SELECT CAST("ObjType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","AbsID" AS "TransId" 
+              FROM OOAT
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              UNION ALL
+              SELECT CAST("ObjType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","DocEntry" AS "TransId" 
+              FROM OPRQ
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              UNION ALL
+              SELECT CAST("ObjType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","DocEntry" AS "TransId" 
+              FROM OPOR
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              UNION ALL
+              SELECT CAST("ObjType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","DocEntry" AS "TransId"
+              FROM OWOR
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              UNION ALL
+              SELECT CAST("ObjType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","DocEntry" AS "TransId"
+              FROM OWTQ
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate           
+              UNION ALL
+              SELECT CAST("ObjType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","DocEntry" AS "TransId"
+              FROM OWTR
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              UNION ALL
+              SELECT CAST("ObjType" AS NVARCHAR(50)) AS "TransType","CreateDate","UserSign","DocEntry" AS "TransId"
+              FROM ODRF
+              WHERE "CreateDate" BETWEEN @FromDate AND @ToDate
+              ) V
+       WHERE V."UserSign"<>1
+       GROUP BY V."TransType",V."CreateDate",V."UserSign";
+       
+       INSERT INTO "#TransTypes"
+       SELECT DISTINCT "TransType",
+              CASE WHEN "TransType"='17' THEN 'Sales Order'
+                     WHEN "TransType"='15' THEN 'Delivery'
+                     WHEN "TransType"='13' THEN 'Invoice'
+                     WHEN "TransType"='14' THEN 'A/R Credit Memo'
+                     WHEN "TransType"='16' THEN 'Returns'
+                     WHEN "TransType"='1250000025' THEN 'Blanket Agreement'
+                     WHEN "TransType"='1470000113' THEN 'Purchase Request'                          
+                      WHEN "TransType"='22' THEN 'Purchase Order'                      
+                      WHEN "TransType"='204' THEN 'A/P Down Payment'
+                     WHEN "TransType"='20' THEN 'Goods Receipt PO'
+                     WHEN "TransType"='69' THEN 'Landed Costs'                         
+                      WHEN "TransType"='18' THEN 'A/P Invoice'                          
+                      WHEN "TransType"='19' THEN 'A/P Credit Memo'
+                     WHEN "TransType"='21' THEN 'Goods Return'
+                     WHEN "TransType"='59' THEN 'Goods Receipt'
+                     WHEN "TransType"='60' THEN 'Goods Issue'
+                     WHEN "TransType"='30' THEN 'Journal Entry'
+                     WHEN "TransType"='24' THEN 'Incoming Payments'
+                     WHEN "TransType"='46' THEN 'Outgoing Payments'
+                     WHEN "TransType"='1250000001' THEN 'Inventory Transfer Request'
+                     WHEN "TransType"='67' THEN 'Inventory Transfer'
+                     WHEN "TransType"='202' THEN 'Production Order'
+                     WHEN "TransType"='10000071' THEN 'Inventory Posting'
+                     WHEN "TransType"='FFS_M_IMPORTLC' THEN 'LC'
+                     WHEN "TransType"='FFS_D_GIT' THEN 'GIT'
+              END AS "Description"
+       FROM "#TransSummary";
+       
+	   --Select * From "#TransTypes";
+	   --Select * From "#TransSummary";
+
+      Set @COLUMN_NAMES = ''
+      Set @SQL_STRING = 'SELECT S."CreateDate",U."U_NAME"';
+              
+			  DECLARE TransTypeCursor CURSOR FOR
+			   SELECT "TransType",ISNULL("Description","TransType") AS "Description"
+			   FROM "#TransTypes"
+              ORDER BY "TransType"
+              
+              Open TransTypeCursor
+
+			   FETCH NEXT FROM TransTypeCursor INTO @COLUMN_NAMES,@COLUMN_NAMES2
+			   
+			WHILE @@FETCH_STATUS = 0
+			  Begin
+                     Set @SQL_STRING = @SQL_STRING+','+CHAR(13)+CHAR(10)+--@LINE_BREAK
+                                         +'ISNULL(SUM(CASE WHEN S."TransType"='+@COLUMN_NAMES+' THEN S."TransCount" ELSE 0 END),0) AS "'+@COLUMN_NAMES2+'"'
+                   FETCH NEXT FROM TransTypeCursor INTO @COLUMN_NAMES,@COLUMN_NAMES2
+			  END
+
+       Set @SQL_STRING = @SQL_STRING+CHAR(13)+CHAR(10)+'FROM "#TransSummary" S INNER JOIN OUSR U ON U.USERID=S."UserSign" '+CHAR(13)+CHAR(10)
+                           +'GROUP BY S."CreateDate",U."U_NAME"'+CHAR(13)+CHAR(10)
+                           +'ORDER BY S."CreateDate",U."U_NAME"';     
+	   
+	   Close TransTypeCursor
+       
+	   DEALLOCATE TransTypeCursor ;
+
+	   --Select @SQL_STRING
+       exec (@SQL_STRING);
+       DROP TABLE "#TransSummary"
+       DROP TABLE "#TransTypes"
+END

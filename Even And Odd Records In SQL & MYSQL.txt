@@ -1,0 +1,11 @@
+------ For SQL -----
+---Even----
+Select Top 50 * From OINV Where DocEntry % 2 = 0
+---Odd---
+Select Top 50 * From OINV Where DocEntry % 2 = 1
+
+------- For MySQL ------
+----Even----
+Select Top 50 * From OINV Where MOD(DocEntry,2) = 0
+----Odd-----
+Select Top 50 * From OINV Where MOD(DocEntry,2) = 1

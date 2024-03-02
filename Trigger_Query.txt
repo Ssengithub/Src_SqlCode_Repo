@@ -1,0 +1,7 @@
+CREATE TRIGGER Student_Trigger 
+BEFORE INSERT  
+ON  
+Student_Table_Marks  
+FOR EACH ROW  
+SET new.Student_TotalMarks = new.Student_EnglishMarks + new.Student_PhysicsMarks + new.Student_ChemistryMarks + new.Student_MathsMarks,   
+new.Student_Percentage = ( new.Student_TotalMarks / 400) * 100

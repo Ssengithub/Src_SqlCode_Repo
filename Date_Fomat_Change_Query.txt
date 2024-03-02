@@ -1,0 +1,25 @@
+select Top 500 A.DocNum As OrderNum
+		,Convert(Varchar(10),A.DocDate,105) As OrderDate
+		,Format(A.DocDate,'dd-MM-yyyy') As OrderDate
+		,B.Dscription As OrderItemName
+		,B.Quantity As OrderQuantity
+		,B.Price As OrderPrice
+		,B.LineTotal As OrderVal
+		,D.DocNum As DeliveryNum
+		,D.DocDate As DeliveryDate
+		,C.Dscription As DeliveryItemName
+		,C.Quantity
+		,C.Price
+		,C.LineTotal
+		,F.DocNum As InvoiceNum
+		,F.DocDate As InvoiceDate
+		,E.Dscription As InvoiceItemName
+		,E.Quantity
+		,E.Price
+		,E.LineTotal
+from ORDR A
+	inner join RDR1 B on A.DocEntry = B.DocEntry
+	left outer join DLN1 C on B.DocEntry = C.BaseEntry and B.LineNum = C.BaseLine and C.BaseType = A.ObjType
+	left outer join ODLN D on C.DocEntry = D.DocEntry
+	left outer join INV1 E on D.DocEntry = E.BaseEntry and C.LineNum = E.BaseLine and E.BaseType = D.ObjType
+	left outer join OINV F on E.DocEntry = F.DocEntry

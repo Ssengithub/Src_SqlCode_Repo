@@ -1,0 +1,17 @@
+CREATE OR REPLACE FUNCTION "FN_ValidValueDesc"(TableName NVARCHAR(30),FieldName NVARCHAR(15),FldValue NVARCHAR(50)) RETURNS ValueDesc NVARCHAR(200)
+
+LANGUAGE SQLSCRIPT
+SQL SECURITY INVOKER AS
+BEGIN
+       SELECT TOP 1 V."Desc" INTO ValueDesc
+       FROM (
+              SELECT TOP 1 V."Descr" AS "Desc"
+              FROM CUFD U INNER JOIN UFD1 V ON V."TableID"=U."TableID" AND V."FieldID"=U."FieldID"
+              WHERE U."TableID"=:TableName
+                     AND U."AliasID"=:FieldName
+                     AND V."FldValue"=:FldValue
+              UNION ALL
+              SELECT '' FROM DUMMY
+              ) V;
+              
+END

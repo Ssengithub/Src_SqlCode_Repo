@@ -1,0 +1,5 @@
+Dec @FDT
+Dec @TDT
+
+Set @FDT = (Select F_dueDate From OFPR Where Indicator = @YEAR)
+Set @TDT = (Select T_dueDate From OFPR Where Indicator = @YEAR)

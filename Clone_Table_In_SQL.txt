@@ -1,0 +1,5 @@
+----How to clone Table In SQL(With Data)---
+Select * Into NEWTBL From TBL
+
+----How to clone Table In SQL(WithOut Data)---
+Select * Into NEWTBL From TBL Where 1=2
